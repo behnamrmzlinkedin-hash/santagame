@@ -149,17 +149,29 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    // --- تنظیمات فایربیس شما (اصلاح شده و تمیز) ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyDOpjIX4Q8g4E0urPEPkhQIfxjgl9wTlM8",
-        authDomain: "santa-game-6c8e9.firebaseapp.com",
-        projectId: "santa-game-6c8e9",
-        storageBucket: "santa-game-6c8e9.firebasestorage.app",
-        messagingSenderId: "672208830308",
-        appId: "1:672208830308:web:39439e23b1a940afadc471",
-        measurementId: "G-4EQ17G14X2"
-    };
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDOpjIX4Q8g4E0urPEPkhQIfxjgl9wTlM8",
+    authDomain: "santa-game-6c8e9.firebaseapp.com",
+    projectId: "santa-game-6c8e9",
+    storageBucket: "santa-game-6c8e9.firebasestorage.app",
+    messagingSenderId: "672208830308",
+    appId: "1:672208830308:web:39439e23b1a940afadc471",
+    measurementId: "G-4EQ17G14X2"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
     // راه اندازی دیتابیس
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -175,11 +187,33 @@
     let score = 0;
     let gameRunning = false;
     
+    // --- طراحی جدید بابانوئل ---
     const santa = {
-        x: 50, y: 150, w: 30, h: 30, velocity: 0, gravity: 0.25, jump: 4.6,
+        x: 50, 
+        y: 150, 
+        w: 30, 
+        h: 40, // ارتفاع کمی بیشتر شد
+        velocity: 0, gravity: 0.25, jump: 4.6,
         draw: function() {
-            ctx.fillStyle = 'red'; ctx.fillRect(this.x, this.y, this.w, this.h);
-            ctx.fillStyle = 'white'; ctx.fillRect(this.x + 5, this.y + 10, 20, 15);
+            // 1. کلاه (قرمز)
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(this.x, this.y, this.w, 12);
+
+            // 2. صورت (رنگ پوست)
+            ctx.fillStyle = '#ffe0bd'; 
+            ctx.fillRect(this.x + 5, this.y + 12, 20, 12);
+
+            // 3. چشم‌ها (مشکی)
+            ctx.fillStyle = 'black';
+            ctx.fillRect(this.x + 8, this.y + 16, 4, 4); 
+            ctx.fillRect(this.x + 18, this.y + 16, 4, 4);
+
+            // 4. حاشیه کلاه (سفید)
+            ctx.fillStyle = 'white';
+            ctx.fillRect(this.x, this.y + 10, this.w, 4);
+            
+            // 5. ریش بزرگ (سفید)
+            ctx.fillRect(this.x, this.y + 22, this.w, 18);
         },
         update: function() {
             this.velocity += this.gravity;
@@ -295,7 +329,7 @@
             await showRewards();
         } catch (e) {
             console.error("Error adding document: ", e);
-            alert("خطا: دیتابیس متصل نشد. لطفا چک کنید اینترنت وصل باشد.");
+            alert("خطا: دیتابیس متصل نشد. لطفا چک کنید اینترنت وصل باشد یا تنظیمات فایربیس صحیح باشد.");
             btn.innerText = "تلاش مجدد";
             btn.disabled = false;
         }
@@ -333,6 +367,7 @@
             });
         } catch (error) {
             console.log("Error getting docs", error);
+            document.getElementById('leaderboard-list').innerHTML = "<li>خطا در دریافت لیست.</li>";
         }
     }
 
