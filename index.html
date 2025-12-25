@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Santa - کریسمس مبارک</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2c3e50;
+            font-family: 'Vazirmatn', sans-serif;
+            overflow: hidden;
+            color: white;
+            text-align: center;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(192, 57, 43, 0.98);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #f1c40f;
+            display: none;
+            z-index: 10;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .overlay::-webkit-scrollbar { width: 5px; }
+        .overlay::-webkit-scrollbar-thumb { background: #f1c40f; border-radius: 5px; }
+
+        #start-screen { display: block; }
+
+        button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: 'Vazirmatn', sans-serif;
+            width: 100%;
+            box-shadow: 0 4px 0 #219150;
+            transition: all 0.1s;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: none; }
+        button:hover { background: #2ecc71; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; box-shadow: none; }
+
+        input {
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            width: 100%;
+            font-family: 'Vazirmatn', sans-serif;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            color: #2c3e50;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        input:focus { outline: none; border-color: #f1c40f; }
+
+        #gift-section {
+            text-align: center;
+            border-top: 2px dashed rgba(255,255,255,0.3);
+            margin-top: 20px;
+            padding-top: 15px;
+        }
+
+        .music-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+            color: #333;
+        }
+
+        .german-quote {
+            font-style: italic;
+            font-size: 1rem;
+            color: #f1c40f;
+            margin-bottom: 5px;
+            direction: ltr;
+        }
+        
+        .persian-translation {
+            font-size: 0.9rem;
+            color: #ecf0f1;
+        }
+
+        #leaderboard-container {
+            margin-top: 20px; 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px; 
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        ul { list-style: none; padding: 0; margin: 0; }
+        h1, h2, h3 { margin: 10px 0; text-shadow: 2px 2px 4px #000; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <audio id="bg-music" loop>
+        <source src="bg.ogg" type="audio/ogg">
+        <source src="bg.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="hit-sound">
+        <source src="hit.ogg" type="audio/ogg">
+        <source src="hit.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="start-screen" class="overlay">
+        <h1>🎅 Flappy Santa</h1>
+        <p>روی صفحه بزنید تا بابانوئل بپرد!</p>
+        <button onclick="window.startGame()">شروع بازی</button>
+    </div>
+
+    <div id="game-over-screen" class="overlay">
+        <h2>💥 آخ! باختی!</h2>
+        <p>امتیاز شما: <span id="final-score" style="color:#f1c40f; font-size:1.5rem; font-weight:bold;">0</span></p>
+        <p>اسمت رو بنویس تا کادوت رو بگیری:</p>
+        <input type="text" id="username" placeholder="نام شما..." autocomplete="off">
+        <button onclick="window.submitScore()">ثبت و دریافت هدیه</button>
+    </div>
+
+    <div id="reward-screen" class="overlay">
+        <h2>🎁 کریسمس مبارک! 🎁</h2>
+        
+        <p style="font-size: 0.9rem;">این هم هدیه شما (موزیک Silent Night):</p>
+        
+        <div class="music-box" id="gift-container" style="display: none;">
+            <p style="margin:0 0 5px 0; font-size:0.8rem;">🎧 پخش موزیک هدیه:</p>
+            <audio id="gift-music" controls style="width: 100%;">
+                <source src="gift.ogg" type="audio/ogg">
+                <source src="gift.mp3" type="audio/mpeg">
+                مرورگر شما پخش موزیک را پشتیبانی نمی‌کند.
+            </audio>
+        </div>
+
+        <div id="gift-section">
+            <h3>سخن بزرگان:</h3>
+            <p class="german-quote">"Man kann keine neuen Ozeane entdecken, wenn man nicht den Mut hat, die Küste aus den Augen zu verlieren." <br><small>- André Gide</small></p>
+            <p class="persian-translation">«آدم نمی‌تواند اقیانوس‌های جدید را کشف کند، مگر اینکه شهامتِ چشم برداشتن از ساحل را داشته باشد.»</p>
+        </div>
+
+        <div id="leaderboard-container">
+            <h3 style="position: sticky; top: 0; background: rgba(0,0,0,0.8); margin: 0; padding: 5px; border-radius: 5px;">🏆 برترین‌ها</h3>
+            <ul id="leaderboard-list">
+                <li style="padding:10px;">در حال بارگذاری...</li>
+            </ul>
+        </div>
+        
+        <button onclick="location.reload()" style="margin-top:15px;">بازی دوباره</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+    import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDOpjIX4Q8g4E0urPEPkhQIfxjgl9wTlM8",
+        authDomain: "santa-game-6c8e9.firebaseapp.com",
+        projectId: "santa-game-6c8e9",
+        storageBucket: "santa-game-6c8e9.firebasestorage.app",
+        messagingSenderId: "672208830308",
+        appId: "1:672208830308:web:39439e23b1a940afadc471",
+        measurementId: "G-4EQ17G14X2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const bgMusic = document.getElementById('bg-music');
+    const hitSound = document.getElementById('hit-sound');
+    
+    bgMusic.volume = 0.4;
+
+    canvas.width = window.innerWidth > 400 ? 400 : window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let frames = 0;
+    let score = 0;
+    let gameRunning = false;
+    
+    // --- مدیریت کلمات پس‌زمینه (اصلاح شده) ---
+    const bgWords = {
+        wordsList: [
+            "بنز عمرانی", "آقا رضا زدننن", "برو عامووو",
+            "خودشور من کو؟", "شما توکن داری؟", "لیست ما دستشونه؟",
+            "بلاخره شد!", "شیر تعزیه", "الکس یا ویلی؟ مساله این است"
+        ],
+        items: [],
+        spawnTimer: 0,
+        
+        init: function() {
+            this.items = [];
+            this.spawnTimer = 0;
+            // یک کلمه همون اول کار بیاد
+            this.spawnWord();
+        },
+        
+        spawnWord: function() {
+            const text = this.wordsList[Math.floor(Math.random() * this.wordsList.length)];
+            this.items.push({
+                x: canvas.width + 50, // شروع از بیرون کادر (سمت راست)
+                y: Math.random() * (canvas.height / 1.5) + 40, // بیشتر در نیمه بالای صفحه
+                text: text,
+                speed: Math.random() * 0.5 + 0.8 // سرعت: بین 0.8 تا 1.3
+            });
+        },
+
+        update: function() {
+            // هر 180 فریم (حدود 3 ثانیه) یک کلمه جدید بساز
+            this.spawnTimer++;
+            if(this.spawnTimer > 180) {
+                this.spawnWord();
+                this.spawnTimer = 0;
+            }
+
+            // حرکت کلمات
+            for(let i=0; i<this.items.length; i++) {
+                let w = this.items[i];
+                w.x -= w.speed;
+            }
+
+            // حذف کلماتی که کامل خارج شدند تا حافظه پر نشود
+            this.items = this.items.filter(w => w.x > -400);
+        },
+
+        draw: function() {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.25)"; // شفافیت تنظیم شده
+            ctx.font = "bold 22px 'Vazirmatn', sans-serif"; 
+            for(let i=0; i<this.items.length; i++) {
+                let w = this.items[i];
+                ctx.fillText(w.text, w.x, w.y);
+            }
+        }
+    };
+
+    const santa = {
+        x: 50, y: 150, w: 34, h: 44,
+        velocity: 0, gravity: 0.25, jump: 4.6,
+        draw: function() {
+            let x = this.x; let y = this.y;
+            ctx.fillStyle = '#e74c3c'; ctx.fillRect(x, y + 20, 34, 24);
+            ctx.fillStyle = '#2c3e50'; ctx.fillRect(x, y + 30, 34, 6);
+            ctx.fillStyle = '#f1c40f'; ctx.fillRect(x + 12, y + 30, 10, 6);
+            ctx.fillStyle = '#ffe0bd'; ctx.fillRect(x + 4, y + 10, 26, 14);
+            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.moveTo(x + 2, y + 18); ctx.lineTo(x + 32, y + 18); ctx.lineTo(x + 17, y + 32); ctx.fill();
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(x, y + 10); ctx.lineTo(x + 34, y + 10); ctx.lineTo(x + 17, y - 5); ctx.fill();
+            ctx.fillStyle = 'white'; ctx.fillRect(x, y + 8, 34, 5);
+            ctx.fillStyle = 'black'; ctx.fillRect(x + 10, y + 14, 4, 4); ctx.fillRect(x + 22, y + 14, 4, 4);
+        },
+        update: function() {
+            this.velocity += this.gravity;
+            this.y += this.velocity;
+            if(this.y + this.h >= canvas.height) gameOver();
+        },
+        flap: function() { this.velocity = -this.jump; }
+    };
+
+    const pipes = {
+        items: [], w: 50, dx: 2, gap: 150,
+        draw: function() {
+            for(let i=0; i<this.items.length; i++) {
+                let p = this.items[i];
+                ctx.fillStyle = '#c0392b';
+                ctx.fillRect(p.x, 0, this.w, p.top);
+                ctx.fillRect(p.x, canvas.height - p.bottom, this.w, p.bottom);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(p.x - 5, p.top - 10, this.w + 10, 10);
+                ctx.fillRect(p.x - 5, canvas.height - p.bottom, this.w + 10, 10);
+            }
+        },
+        update: function() {
+            if(frames % 120 === 0) {
+                let topHeight = Math.random() * (canvas.height - 300) + 50;
+                this.items.push({ x: canvas.width, top: topHeight, bottom: canvas.height - (topHeight + this.gap) });
+            }
+            for(let i=0; i<this.items.length; i++) {
+                let p = this.items[i];
+                p.x -= this.dx;
+                if(santa.x + santa.w > p.x && santa.x < p.x + this.w && 
+                   (santa.y < p.top || santa.y + santa.h > canvas.height - p.bottom)) {
+                       gameOver();
+                }
+                if(p.x + this.w < 0) { this.items.shift(); score++; }
+            }
+        }
+    };
+
+    const snow = {
+        flakes: [],
+        init: function() {
+            for(let i=0; i<50; i++) {
+                this.flakes.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 3 + 1, d: Math.random() * 1 + 0.5 })
+            }
+        },
+        draw: function() {
+            ctx.fillStyle = "white"; ctx.beginPath();
+            for(let i = 0; i < this.flakes.length; i++) {
+                let f = this.flakes[i];
+                ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
+            }
+            ctx.fill(); this.update();
+        },
+        update: function() {
+            for (let i = 0; i < this.flakes.length; i++) {
+                let f = this.flakes[i]; f.y += Math.pow(f.d, 2) + 1;
+                if(f.y > canvas.height) { f.y = 0; f.x = Math.random() * canvas.width; }
+            }
+        }
+    };
+
+    function loop() {
+        if(!gameRunning) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grd.addColorStop(0, "#001f3f"); grd.addColorStop(1, "#3a6073");
+        ctx.fillStyle = grd; ctx.fillRect(0,0, canvas.width, canvas.height);
+        
+        // رسم عناصر
+        bgWords.draw();
+        bgWords.update();
+        snow.draw(); 
+        pipes.draw(); 
+        pipes.update(); 
+        santa.draw(); 
+        santa.update();
+        
+        // امتیاز
+        ctx.fillStyle = "gold"; 
+        ctx.font = "30px Arial"; 
+        ctx.fillText(score, 50, 60);
+
+        frames++; requestAnimationFrame(loop);
+    }
+
+    window.startGame = function() {
+        document.getElementById('start-screen').style.display = 'none';
+        
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => console.log("Music blocked"));
+        }
+
+        santa.y = 150; santa.velocity = 0; pipes.items = []; score = 0; frames = 0;
+        gameRunning = true;
+        
+        snow.init();
+        bgWords.init(); 
+        loop();
+    }
+
+    function gameOver() {
+        if(!gameRunning) return;
+        gameRunning = false;
+        bgMusic.pause();
+        bgMusic.currentTime = 0; 
+        hitSound.play().catch(e => console.log(e));
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('game-over-screen').style.display = 'block';
+    }
+
+    window.submitScore = async function() {
+        const nameInput = document.getElementById('username');
+        const name = nameInput.value.trim();
+        const btn = document.querySelector('#game-over-screen button');
+        if(!name) { alert("لطفا اسم خود را وارد کنید!"); return; }
+        btn.innerText = "⏳ در حال ثبت...";
+        btn.disabled = true;
+        try {
+            await addDoc(collection(db, "scores"), {
+                name: name,
+                score: score,
+                date: new Date()
+            });
+            await showRewards();
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            alert("خطا در اتصال.");
+            btn.innerText = "تلاش مجدد";
+            btn.disabled = false;
+        }
+    }
+
+    async function showRewards() {
+        document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('reward-screen').style.display = 'block';
+        
+        const giftContainer = document.getElementById('gift-container');
+        const giftAudio = document.getElementById('gift-music');
+        
+        giftContainer.style.display = 'block';
+        
+        try {
+            giftAudio.play();
+        } catch(e) {
+            console.log("Auto-play prevented");
+        }
+
+        try {
+            const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(20));
+            const querySnapshot = await getDocs(q);
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = "";
+            let rank = 1;
+            querySnapshot.forEach((doc) => {
+                const entry = doc.data();
+                const isMe = (entry.score === score && entry.name === document.getElementById('username').value.trim());
+                const li = document.createElement('li');
+                li.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="${isMe ? 'color: #f1c40f; font-weight:bold;' : ''}">${rank}. ${entry.name}</span>
+                        <span style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:10px;">${entry.score}</span></div>`;
+                li.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+                li.style.padding = "10px 5px";
+                list.appendChild(li);
+                rank++;
+            });
+        } catch (error) {
+            console.log("Error getting docs", error);
+        }
+    }
+
+    window.addEventListener('click', () => { if(gameRunning) santa.flap(); });
+    window.addEventListener('keydown', (e) => { 
+        if(e.code === 'Space' && gameRunning) santa.flap(); 
+    });
+</script>
+
+</body>
+</html>
